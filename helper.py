@@ -8,9 +8,11 @@ import cv2
 class HelperFunctions():
 
     def distance(self, pt1, pt2):
+        #calculate the euclidean distance between 2 points
         return math.sqrt((pt1[0] - pt2[0]) ** 2 + (pt1[1] - pt2[1]) ** 2)
 
     def calculate_angle(self, defect1, finger_tip, defect2):
+        #calculate the angle between the candidate finger tip and neighbouring defects using cosine law
         a = self.distance(defect1, defect2)
         b = self.distance(defect1, finger_tip)
         c = self.distance(defect2, finger_tip)
