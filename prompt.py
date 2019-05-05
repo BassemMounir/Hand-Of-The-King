@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import QMainWindow, QDialog
 
 
 class PromptWindow(QDialog):
+    #prompt window used when user is asked whether to overwrite current profile or create a new one
     def __init__(self):
         self.setupUi(self)
 
