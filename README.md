@@ -1,2 +1,25 @@
 # Hand-Of-The-King
-Hand Gesture computer control
+
+Hand-Of-The-King is a Python program that  uses the webcam to detect hand gestures and map them to user defined keyboard keys and shortucts.
+
+## Installation
+
+Download this repository.
+
+Download [Python3+](https://www.python.org/downloads/).
+
+Use [pip](https://pip.pypa.io/en/stable/) to install the requirements.
+
+```bash
+pip install -r Requirements.txt
+```
+
+## Usage
+
+```bash
+python3 main.py
+```
+####  Note: You can also run Hand-of-the-king.exe if you are on windows.
+
+
+
