@@ -14,28 +14,25 @@ class Gesture_detector:
         self.cap_region_y_end = 0.8  # start point/total width
         self.threshold = 40  # BINARY threshold
         self.blurValue = 41  # GaussianBlur parameter
-        self.bgSubThreshold = 50
+        self.bgSubThreshold = 50 
         self.learningRate = 0
         self.isBgCaptured = 0  # bool, whether the background captured
         self.camera = cv2.VideoCapture(source)
-        self.camera.set(10, 200)
-        self.cap_btn_clicked = False
-        self.region_center = 0
+        self.camera.set(10, 200) #adjusting brightness
+        self.cap_btn_clicked = False #bool,whether the capture button is clicked
+        self.region_center = 0   #center of ROI
         self.helper = HelperFunctions()
 
     def removeBG(self, frame):
+        #returns the frame after background subtraction 
         fgmask = self.bgModel.apply(frame, learningRate=self.learningRate)
-        # kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
-        # res = cv2.morphologyEx(fgmask, cv2.MORPH_OPEN, kernel)
-
         kernel = np.ones((3, 3), np.uint8)
         fgmask = cv2.erode(fgmask, kernel, iterations=1)
         res = cv2.bitwise_and(frame, frame, mask=fgmask)
         return res
     
-    
-
     def frame_with_ROI(self):
+        #draws the region of interest on each frame and calculating the region center.
         ret, frame = self.camera.read()
         if ret:
             frame = cv2.bilateralFilter(frame, 5, 50, 100)  # smoothing filter
