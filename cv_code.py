@@ -107,3 +107,76 @@ class Gesture_detector:
         else:
             return "no motion"
 
+    def get_gesture(self):
+        frame_no = 0
+        cnts = []
+        directions = []
+        
+        while self.camera.isOpened():
+            ret, frame = self.frame_with_ROI()
+            if self.isBgCaptured == 1:  # this part wont run until background captured
+                img = self.removeBG(frame)
+                img = img[0:int(self.cap_region_y_end * frame.shape[0]),
+                      int(self.cap_region_x_begin * frame.shape[1]): frame.shape[1]]  # clip the ROI
+                
+                # convert the image into binary image
+                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                blur = cv2.GaussianBlur(gray, (self.blurValue, self.blurValue), 0)
+                ret, thresh = cv2.threshold(blur, self.threshold, 255, cv2.THRESH_BINARY)
+                
+                # get the coutours
+                thresh1 = copy.deepcopy(thresh)
+                contours, hierarchy = cv2.findContours(thresh1, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+                length = len(contours)
+                maxArea = -1
+                if length > 0:
+                    for i in range(length):  # find the biggest contour (according to area)
+                        temp = contours[i]
+                        area = cv2.contourArea(temp)
+                        if area > maxArea:
+                            maxArea = area
+                            ci = i
+                    res = contours[ci]
+                    hull = cv2.convexHull(res)
+                    drawing = np.zeros(img.shape, np.uint8)
+                    cv2.drawContours(drawing, [res], 0, (0, 255, 0), 2)
+                    cv2.drawContours(drawing, [hull], 0, (0, 0, 255), 3)
+
+                    final_defects, isFinished, cnt = self.calculateFingers(res, drawing)
+                    cnts.append(cnt)
+                    palm_center = None
+                    if len(final_defects) > 0:
+                        palm_center = self.helper.get_avg_point(final_defects)
+
+                    if palm_center is not None:
+                        directions.append(self.get_direction(palm_center, 40))
+
+                    frame_no += 1
+                    if frame_no == 30:
+                        try:
+                            cnt = mode(cnts)
+                            if len(directions) > 1:
+                                if cnt == 0:
+                                    direction = "left"
+                                else:
+                                    direction = mode(directions)
+                                current_gesture = "finger_" + str(cnt) + "_" + direction
+
+                                return current_gesture
+
+                        except:
+                            pass
+                        frame_no = 0
+                        cnts = []
+                        directions = []
+                    cv2.circle(drawing, self.region_center, 8, [255, 255, 255], -1)
+                    if palm_center is not None:
+                        cv2.circle(drawing, palm_center, 8, [0, 0, 255], -1)
+                    cv2.imshow('Region of Interest', drawing)
+
+            cv2.waitKey(10)
+            if self.cap_btn_clicked:  # press 'b' to capture the background
+                self.bgModel = None
+                self.bgModel = cv2.createBackgroundSubtractorMOG2(0, self.bgSubThreshold)
+                self.isBgCaptured = 1
+                self.cap_btn_clicked = 0
