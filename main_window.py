@@ -1,34 +1,39 @@
+# -*- coding: utf-8 -*-
 import os
 import pickle
 import shutil
-import cv2
+
 import numpy as np
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import (QThread, pyqtSignal)
 from PyQt5.QtGui import QPixmap
-from pynput.keyboard import Key, Controller
+from pynput.keyboard import Controller,Key
 
+from Hand_window import Hand_Window
 from cv_code import Gesture_detector
 from prompt import PromptWindow
 
-detector_obj = Gesture_detector() 
+detector_obj = Gesture_detector()
 
 
 class Thread(QThread):
-    #custom thread class that is used to update the camera frames in the gui
     changeframe = pyqtSignal(np.ndarray)
+    hand_frame_change = pyqtSignal(np.ndarray)
+    hide_signal = pyqtSignal()
 
     def run(self):
         while True:
-            ret, frame = detector_obj.frame_with_ROI() # get the current camera frame + Region of interest
+            ret, frame = detector_obj.frame_with_ROI()
             if ret:
-                self.changeframe.emit(frame) # emit signal to send the frame to the view_image function
+                self.changeframe.emit(frame)
+            if detector_obj.gui_frame is not None:
+                self.hand_frame_change.emit(detector_obj.gui_frame)
 
 
 class Control_Panel(QtWidgets.QWidget):
 
-    def setupUi(self, Form): #setuping window attributes (auto generated using qt designer and edited)
-
+    def setupUi(self, Form):
+        self.gesture_detector = detector_obj
         self.profiles = self.load_profiles()
         Form.setObjectName("Form")
         Form.resize(810, 640)
@@ -72,8 +77,17 @@ class Control_Panel(QtWidgets.QWidget):
                            "   color: #FFA500;\n"
                            "}\n"
                            "\n"
+                           "QComboBox QListView{\n"
+                           "   color: #FFA500;\n"
+                           "}\n"
+                           "\n"
+                           "QListView:item{\n"
+                           "   color: #FFA500;\n"
+                           "}\n"
+                           "\n"
+
                            "QTabBar::tab{\n"
-                           "    color:#ffffff;\n"
+                           "    color:#000000;\n"
                            "}")
         self.tabWidget = QtWidgets.QTabWidget(Form)
         self.tabWidget.setGeometry(QtCore.QRect(-2, -2, 811, 641))
@@ -504,6 +518,7 @@ class Control_Panel(QtWidgets.QWidget):
                                   "}")
         self.Btn_Go.setObjectName("Btn_Go")
         self.Btn_Go.clicked.connect(self.go_on_click)
+        self.Btn_Go.setVisible(False)
 
         self.Btn_Capture = QtWidgets.QPushButton(self.tab_2)
         self.Btn_Capture.setGeometry(QtCore.QRect(230, 580, 81, 21))
@@ -528,7 +543,7 @@ class Control_Panel(QtWidgets.QWidget):
         self.tabWidget.setCurrentIndex(0)
 
         QtCore.QMetaObject.connectSlotsByName(Form)
-    
+
     def get_text_values(self):
         finger_values = {}
         finger_values["finger_0_left"] = getattr(self, "textEdit_0_left").toPlainText()
@@ -543,10 +558,20 @@ class Control_Panel(QtWidgets.QWidget):
     def restore_defaults(self):
         os.remove('./saved_profiles.pkl')
         shutil.copy('./default_profiles.pkl', './saved_profiles.pkl')
+        self.profiles = self.load_profiles()
+        self.ComboBox_profiles.clear()
+        for key, value in self.profiles.items():
+            self.ComboBox_profiles.addItem(key)
+
 
     def go_on_click(self):
         action = self.Btn_Go.text()
+
+
         if action == "Go":
+            self.th.hide_signal.emit()
+            self.hand_window.show()
+
             self.application_on = True
             threshold = self.Slider_Senitivity.value()
             key_bindings_dict = self.get_text_values()
@@ -559,12 +584,16 @@ class Control_Panel(QtWidgets.QWidget):
                                       "   height: 25px;\n"
                                       "}")
             while self.application_on == True:
+                # print(self.application_on)
+
                 detector_obj.threshold = threshold
                 current_gesture = detector_obj.get_gesture()
+                print(current_gesture)
                 self.map_gesture_to_shortcut(key_bindings_dict, current_gesture)
-            cv2.destroyAllWindows()
         else:
+            self.hand_window.close()
             self.application_on = False
+            # print(self.application_on)
             self.Btn_Go.setText("Go")
             self.Btn_Go.setStyleSheet("QPushButton {\n"
                                       "   background-color: #00ab66;\n"
@@ -576,9 +605,10 @@ class Control_Panel(QtWidgets.QWidget):
 
     def map_gesture_to_shortcut(self, finger_values, gesture):
         keyboard = Controller()
-        keys_list = ["space", "up", "down", "right", "left", "tab", "esc", "enter", "page_down", "page_up", "f1",
+        special_keys_list = ["space", "up", "down", "right", "left", "tab", "esc", "enter", "page_down", "page_up", "f1",
                      "f4", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10", "f11", "f12", "f13", "f14", "f15",
                      "backspace"]
+        chord_keys =["alt","ctrl","shift","cmd"]
         if gesture in finger_values:
             value = finger_values[gesture]
             value = value.replace(" ", "")
@@ -587,21 +617,21 @@ class Control_Panel(QtWidgets.QWidget):
             if "+" in value:
                 key1 = value[:value.index("+")]
                 key2 = value[value.index("+") + 1:]
-                if key1 == "alt" or key1 == "ctrl" or key1 == "shift" or key1 == "cmd":
-                    if key2 in keys_list:
-                        key1 = eval("Key." + key1)
+                if key1.lower() in chord_keys:
+                    if key2.lower() in special_keys_list:
+                        key1 = eval("Key." + key1.lower())
                         with keyboard.pressed(key1):
-                            key2 = eval("Key." + key2)
+                            key2 = eval("Key." + key2.lower())
                             keyboard.press(key2)
                             keyboard.release(key2)
                     else:
-                        key1 = eval("Key." + key1)
+                        key1 = eval("Key." + key1.lower())
                         with keyboard.pressed(key1):
                             keyboard.press(key2)
                             keyboard.release(key2)
             else:
-                if value in keys_list:
-                    value = eval("Key." + value)
+                if value.lower() in special_keys_list:
+                    value = eval("Key." + value.lower())
                     keyboard.press(value)
                     keyboard.release(value)
                 else:
@@ -624,6 +654,9 @@ class Control_Panel(QtWidgets.QWidget):
 
     def capture_on_click(self):
         detector_obj.cap_btn_clicked = 1
+        self.Btn_Go.setVisible(True)
+
+
 
     def load_profiles(self):
         profiles = {}
@@ -654,7 +687,7 @@ class Control_Panel(QtWidgets.QWidget):
                                             "<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /></p>\n"
                                             "<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:16pt; font-weight:400; font-style:normal;\"><br />Note: make sure that you don\'t change the background while running.</span></p></body></html>"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.widget), _translate("Form", "Hand of The King"))
-        self.label_25.setText(_translate("Form", "Choose from saved profiles or create your own"))
+        self.label_25.setText(_translate("Form", "Choose from saved profiles or create one"))
         for key, value in self.profiles.items():
             self.ComboBox_profiles.addItem(key)
 
@@ -694,10 +727,12 @@ class Control_Panel(QtWidgets.QWidget):
         self.Btn_Capture.setText(_translate("Form", "Capture"))
         self.label_69.setText(_translate("Form", "Sensitivity"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), _translate("Form", "Camera Settings"))
+        self.hand_window = Hand_Window()
         Form.show()
-        th = Thread(self)
-        th.changeframe.connect(self.view_image)
-        th.start()
+        self.th = Thread(self)
+        self.th.changeframe.connect(self.view_image)
+        self.th.hand_frame_change.connect(self.hand_window.view_image)
+        self.th.start()
 
     def view_image(self, frame):
         height, width, colors = frame.shape
