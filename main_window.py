@@ -528,3 +528,198 @@ class Control_Panel(QtWidgets.QWidget):
         self.tabWidget.setCurrentIndex(0)
 
         QtCore.QMetaObject.connectSlotsByName(Form)
+    
+    def get_text_values(self):
+        finger_values = {}
+        finger_values["finger_0_left"] = getattr(self, "textEdit_0_left").toPlainText()
+        for i in range(1, 6):
+            finger_values["finger_" + str(i) + "_left"] = getattr(self, "textEdit_" + str(i) + "_left").toPlainText()
+            finger_values["finger_" + str(i) + "_right"] = getattr(self, "textEdit_" + str(i) + "_right").toPlainText()
+            finger_values["finger_" + str(i) + "_up"] = getattr(self, "textEdit_" + str(i) + "_up").toPlainText()
+            finger_values["finger_" + str(i) + "_down"] = getattr(self, "textEdit_" + str(i) + "_down").toPlainText()
+
+        return finger_values
+
+    def restore_defaults(self):
+        os.remove('./saved_profiles.pkl')
+        shutil.copy('./default_profiles.pkl', './saved_profiles.pkl')
+
+    def go_on_click(self):
+        action = self.Btn_Go.text()
+        if action == "Go":
+            self.application_on = True
+            threshold = self.Slider_Senitivity.value()
+            key_bindings_dict = self.get_text_values()
+            self.Btn_Go.setText("Stop")
+            self.Btn_Go.setStyleSheet("QPushButton {\n"
+                                      "   background-color: #FF0000;\n"
+                                      "   color: #ffffff;\n"
+                                      "   border-radius: 5px;\n"
+                                      "   border-style: none;\n"
+                                      "   height: 25px;\n"
+                                      "}")
+            while self.application_on == True:
+                # print(self.application_on)
+                detector_obj.threshold = threshold
+                current_gesture = detector_obj.get_gesture()
+                # print(current_gesture)
+                self.map_gesture_to_shortcut(key_bindings_dict, current_gesture)
+            cv2.destroyAllWindows()
+        else:
+            self.application_on = False
+            # print(self.application_on)
+            self.Btn_Go.setText("Go")
+            self.Btn_Go.setStyleSheet("QPushButton {\n"
+                                      "   background-color: #00ab66;\n"
+                                      "   color: #ffffff;\n"
+                                      "   border-radius: 5px;\n"
+                                      "   border-style: none;\n"
+                                      "   height: 25px;\n"
+                                      "}")
+
+    def map_gesture_to_shortcut(self, finger_values, gesture):
+        keyboard = Controller()
+        keys_list = ["space", "up", "down", "right", "left", "tab", "esc", "enter", "page_down", "page_up", "f1",
+                     "f4", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10", "f11", "f12", "f13", "f14", "f15",
+                     "backspace"]
+        if gesture in finger_values:
+            value = finger_values[gesture]
+            value = value.replace(" ", "")
+            if value == "":
+                return
+            if "+" in value:
+                key1 = value[:value.index("+")]
+                key2 = value[value.index("+") + 1:]
+                if key1 == "alt" or key1 == "ctrl" or key1 == "shift" or key1 == "cmd":
+                    if key2 in keys_list:
+                        key1 = eval("Key." + key1)
+                        with keyboard.pressed(key1):
+                            key2 = eval("Key." + key2)
+                            keyboard.press(key2)
+                            keyboard.release(key2)
+                    else:
+                        key1 = eval("Key." + key1)
+                        with keyboard.pressed(key1):
+                            keyboard.press(key2)
+                            keyboard.release(key2)
+            else:
+                if value in keys_list:
+                    value = eval("Key." + value)
+                    keyboard.press(value)
+                    keyboard.release(value)
+                else:
+                    keyboard.press(value)
+                    keyboard.release(value)
+
+    def save_profile(self):
+        self.prompt = PromptWindow()
+        if self.prompt.exec_():
+            if self.prompt.RadioButton_Yes.isChecked() == True:
+                profile_name = str(self.ComboBox_profiles.currentText())
+            else:
+                profile_name = self.prompt.textEdit_New_Profile_Name.toPlainText()
+                self.ComboBox_profiles.addItem(profile_name)
+                self.ComboBox_profiles.setCurrentText(profile_name)
+                self.ComboBox_profiles.currentTextChanged.connect(self.selectionchange)
+            self.profiles[profile_name] = self.get_text_values()
+            with open('saved_profiles.pkl', 'wb') as saved_profiles_file:
+                pickle.dump(self.profiles, saved_profiles_file)
+
+    def capture_on_click(self):
+        detector_obj.cap_btn_clicked = 1
+
+    def load_profiles(self):
+        profiles = {}
+        if os.path.exists('saved_profiles.pkl'):
+            with open('saved_profiles.pkl', 'rb') as saved_profiles_file:
+                profiles = pickle.load(saved_profiles_file)
+        return profiles
+
+    def retranslateUi(self, Form):
+        _translate = QtCore.QCoreApplication.translate
+        Form.setWindowTitle(_translate("Form", "Hand of The King"))
+        self.textEdit_73.setHtml(_translate("Form",
+                                            "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
+                                            "<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
+                                            "p, li { white-space: pre-wrap; }\n"
+                                            "</style></head><body style=\" font-family:\'Sans Serif\'; font-size:9pt; font-weight:600; font-style:italic;\">\n"
+                                            "<p style=\"-qt-paragraph-type:empty; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /></p>\n"
+                                            "<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /></p>\n"
+                                            "<p align=\"center\" style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:26pt; color:#ffaa00;\">Welcome to Hand of The King</span></p>\n"
+                                            "<p align=\"center\" style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /></p>\n"
+                                            "<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:18pt; font-style:normal;\">How to use:</span></p>\n"
+                                            "<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /></p>\n"
+                                            "<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:16pt; font-weight:400; font-style:normal;\">1. From Key Binding tab, choose from preset profiles or create your own key binding profile.</span></p>\n"
+                                            "<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /></p>\n"
+                                            "<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:16pt; font-weight:400; font-style:normal;\">2. From Camera Settings tab, step aside and capture the background.</span></p>\n"
+                                            "<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /></p>\n"
+                                            "<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:16pt; font-weight:400; font-style:normal;\">3. Click Start.</span></p>\n"
+                                            "<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /></p>\n"
+                                            "<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:16pt; font-weight:400; font-style:normal;\"><br />Note: make sure that you don\'t change the background while running.</span></p></body></html>"))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.widget), _translate("Form", "Hand of The King"))
+        self.label_25.setText(_translate("Form", "Choose from saved profiles or create your own"))
+        for key, value in self.profiles.items():
+            self.ComboBox_profiles.addItem(key)
+
+        self.ComboBox_profiles.currentTextChanged.connect(self.selectionchange)
+        self.ComboBox_profiles.setCurrentIndex(-1)
+        self.groupBox.setTitle(_translate("Form", "One Finger Gesture"))
+        self.label_2.setText(_translate("Form", "Left"))
+        self.label_4.setText(_translate("Form", "Down"))
+        self.label_3.setText(_translate("Form", "Up"))
+        self.label.setText(_translate("Form", "Right"))
+        self.groupBox_4.setTitle(_translate("Form", "Two Finger Gesture"))
+        self.label_13.setText(_translate("Form", "Left"))
+        self.label_14.setText(_translate("Form", "Down"))
+        self.label_15.setText(_translate("Form", "Up"))
+        self.label_16.setText(_translate("Form", "Right"))
+        self.groupBox_3.setTitle(_translate("Form", "Three Finger Gesture"))
+        self.label_9.setText(_translate("Form", "Left"))
+        self.label_10.setText(_translate("Form", "Down"))
+        self.label_11.setText(_translate("Form", "Up"))
+        self.label_12.setText(_translate("Form", "Right"))
+        self.groupBox_5.setTitle(_translate("Form", "Closed Fist Gesture"))
+        self.groupBox_6.setTitle(_translate("Form", "Five Finger Gesture"))
+        self.label_21.setText(_translate("Form", "Left"))
+        self.label_22.setText(_translate("Form", "Down"))
+        self.label_23.setText(_translate("Form", "Up"))
+        self.label_24.setText(_translate("Form", "Right"))
+        self.groupBox_2.setTitle(_translate("Form", "Four Finger Gesture"))
+        self.label_5.setText(_translate("Form", "Left"))
+        self.label_6.setText(_translate("Form", "Down"))
+        self.label_7.setText(_translate("Form", "Up"))
+        self.label_8.setText(_translate("Form", "Right"))
+        self.Btn_Save.setText(_translate("Form", "Save"))
+        self.Btn_default.setText(_translate("Form", "Restore Defaults"))
+        self.Btn_Save.clicked.connect(self.save_profile)
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), _translate("Form", "Key Bindings"))
+        self.Btn_Go.setText(_translate("Form", "Go"))
+        self.Btn_Capture.setText(_translate("Form", "Capture"))
+        self.label_69.setText(_translate("Form", "Sensitivity"))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), _translate("Form", "Camera Settings"))
+        Form.show()
+        th = Thread(self)
+        th.changeframe.connect(self.view_image)
+        th.start()
+
+    def view_image(self, frame):
+        height, width, colors = frame.shape
+        bytesPerLine = 3 * width
+        QImage = QtGui.QImage
+        image = QImage(frame.data, width, height, bytesPerLine, QImage.Format_RGB888)
+        image = image.rgbSwapped()
+        pixmap = QPixmap(image)
+        self.frame_2.setPixmap(pixmap)
+
+    def selectionchange(self, selecteditem):
+        if selecteditem in self.profiles:
+            values = self.profiles[selecteditem]
+            getattr(self, "textEdit_0_left").setText(values["finger_0_left"])
+            for i in range(1, 6):
+                getattr(self, "textEdit_" + str(i) + "_left").setText(values["finger_" + str(i) + "_left"])
+                getattr(self, "textEdit_" + str(i) + "_right").setText(values["finger_" + str(i) + "_right"])
+                getattr(self, "textEdit_" + str(i) + "_up").setText(values["finger_" + str(i) + "_up"])
+                getattr(self, "textEdit_" + str(i) + "_down").setText(values["finger_" + str(i) + "_down"])
+
+    def __del__(self):
+        detector_obj.camera.release()
