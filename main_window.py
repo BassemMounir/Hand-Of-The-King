@@ -588,7 +588,7 @@ class Control_Panel(QtWidgets.QWidget):
 
                 detector_obj.threshold = threshold
                 current_gesture = detector_obj.get_gesture()
-                print(current_gesture)
+                # print(current_gesture)
                 self.map_gesture_to_shortcut(key_bindings_dict, current_gesture)
         else:
             self.hand_window.close()
@@ -690,7 +690,7 @@ class Control_Panel(QtWidgets.QWidget):
         self.label_25.setText(_translate("Form", "Choose from saved profiles or create one"))
         for key, value in self.profiles.items():
             self.ComboBox_profiles.addItem(key)
-
+        self.textEdit_73.setDisabled(True)
         self.ComboBox_profiles.currentTextChanged.connect(self.selectionchange)
         self.ComboBox_profiles.setCurrentIndex(-1)
         self.groupBox.setTitle(_translate("Form", "One Finger Gesture"))
