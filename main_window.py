@@ -559,15 +559,12 @@ class Control_Panel(QtWidgets.QWidget):
                                       "   height: 25px;\n"
                                       "}")
             while self.application_on == True:
-                # print(self.application_on)
                 detector_obj.threshold = threshold
                 current_gesture = detector_obj.get_gesture()
-                # print(current_gesture)
                 self.map_gesture_to_shortcut(key_bindings_dict, current_gesture)
             cv2.destroyAllWindows()
         else:
             self.application_on = False
-            # print(self.application_on)
             self.Btn_Go.setText("Go")
             self.Btn_Go.setStyleSheet("QPushButton {\n"
                                       "   background-color: #00ab66;\n"
