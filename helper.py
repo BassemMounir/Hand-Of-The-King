@@ -60,4 +60,19 @@ class HelperFunctions():
                 new_defects.append((start1, end1, far1))
         return new_defects
 
+    def get_avg_point(self, points):
+        return tuple(np.mean(points, axis=0, dtype=np.int))
 
+    def closest_defects(self, finger_tips, defects):
+        result = []
+        for i in range(0, len(finger_tips)):
+            total_distances_dic = {}
+            tmp_list = []
+            for j in range(0, len(defects)):
+                total_distances_dic[j] = self.distance(finger_tips[i], defects[j][2])
+                tmp_list = sorted(total_distances_dic, key=total_distances_dic.__getitem__)
+            if len(tmp_list) >= 2:
+                index1 = tmp_list[0]
+                index2 = tmp_list[1]
+                result.append((defects[index1][2], finger_tips[i], defects[index2][2]))
+        return result
