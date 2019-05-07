@@ -25,7 +25,7 @@ pip install -r Requirements.txt
 ```bash
 python3 main.py
 ```
-####  Note: You can also run Hand-of-the-king.exe if you are on windows.
+####  Note: You can also run [Hand of the king.exe](https://www.mediafire.com/file/kjdmc1k1akhwk1e/Hand_of_the_King.exe/file) if you are on a 64-bit version of windows and keep default_profiles.pkl in the same directory to be able to load the default profiles .
 
 ## Demo Video 
 
