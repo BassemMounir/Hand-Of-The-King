@@ -1,6 +1,6 @@
 # Hand-Of-The-King
 
-Hand-Of-The-King is a Python program that  uses the webcam to detect hand gestures and map them to user defined keyboard keys and shortucts.
+Hand-Of-The-King is a Python program that  uses the webcam to detect hand gestures and map them to user defined keyboard keys and shortcuts.
 
 ## Team members 
 1) [Therese Ayad Youssef](https://github.com/ThereseAyad).
